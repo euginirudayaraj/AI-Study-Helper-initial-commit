@@ -1,11 +1,12 @@
 import json
 import logging
 from datetime import datetime, timezone
+import os 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
+rds_host = os.getenv("RDS_HOST")
 def lambda_handler(event, context):
 
     logger.info("flowbridge-sbx-url-read invoked")
