@@ -1,0 +1,45 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Checking AWS CLI and zip"
+      - aws --version
+      - which zip || yum install -y zip
+
+  pre_build:
+    commands:
+      - echo "Starting FlowBridge Lambda deployment"
+
+  build:
+    commands:
+      - |
+        for lambda_file in lambdas/*.py; do
+          if [ -f "$lambda_file" ]; then
+            function_name=$(basename "$lambda_file" .py)
+
+            echo "----------------------------------------"
+            echo "Deploying Lambda: $function_name"
+            echo "Source file: $lambda_file"
+
+            rm -rf build
+            mkdir -p build
+
+            cp "$lambda_file" build/lambda_function.py
+
+            cd build
+            zip -r "../${function_name}.zip" .
+            cd ..
+
+            aws lambda update-function-code \
+              --function-name "$function_name" \
+              --zip-file "fileb://${function_name}.zip" \
+              --region us-east-1
+
+            echo "Completed deployment for: $function_name"
+          fi
+        done
+
+  post_build:
+    commands:
+      - echo "All FlowBridge Lambda deployments completed"
