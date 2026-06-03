@@ -1,5 +1,14 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_REGION: "us-east-1"
+    LAMBDA_EXECUTION_ROLE_ARN: "arn:aws:iam::145292399647:role/flowbridge-sbx-lambda-execution-role"
+    LAMBDA_RUNTIME: "python3.12"
+    LAMBDA_HANDLER: "lambda_function.lambda_handler"
+    LAMBDA_MEMORY_SIZE: "256"
+    LAMBDA_TIMEOUT: "30"
+
 phases:
   install:
     commands:
@@ -9,7 +18,9 @@ phases:
 
   pre_build:
     commands:
-      - echo "Starting FlowBridge Lambda deployment"
+      - echo "Starting FlowBridge Lambda create/update deployment"
+      - echo "AWS region is $AWS_REGION"
+      - echo "Lambda execution role is $LAMBDA_EXECUTION_ROLE_ARN"
 
   build:
     commands:
@@ -19,7 +30,7 @@ phases:
             function_name=$(basename "$lambda_file" .py)
 
             echo "----------------------------------------"
-            echo "Deploying Lambda: $function_name"
+            echo "Processing Lambda: $function_name"
             echo "Source file: $lambda_file"
 
             rm -rf build
@@ -31,15 +42,35 @@ phases:
             zip -r "../${function_name}.zip" .
             cd ..
 
-            aws lambda update-function-code \
-              --function-name "$function_name" \
-              --zip-file "fileb://${function_name}.zip" \
-              --region us-east-1
+            if aws lambda get-function --function-name "$function_name" --region "$AWS_REGION" > /dev/null 2>&1; then
+              echo "Lambda exists. Updating code: $function_name"
 
-            echo "Completed deployment for: $function_name"
+              aws lambda update-function-code \
+                --function-name "$function_name" \
+                --zip-file "fileb://${function_name}.zip" \
+                --region "$AWS_REGION"
+
+              echo "Update completed for: $function_name"
+
+            else
+              echo "Lambda does not exist. Creating function: $function_name"
+
+              aws lambda create-function \
+                --function-name "$function_name" \
+                --runtime "$LAMBDA_RUNTIME" \
+                --role "$LAMBDA_EXECUTION_ROLE_ARN" \
+                --handler "$LAMBDA_HANDLER" \
+                --zip-file "fileb://${function_name}.zip" \
+                --memory-size "$LAMBDA_MEMORY_SIZE" \
+                --timeout "$LAMBDA_TIMEOUT" \
+                --region "$AWS_REGION" \
+                --tags Project=flowbridge Environment=sbx ManagedBy=codebuild
+
+              echo "Create completed for: $function_name"
+            fi
           fi
         done
 
   post_build:
     commands:
-      - echo "All FlowBridge Lambda deployments completed"
+      - echo "FlowBridge Lambda create/update deployment completed"
