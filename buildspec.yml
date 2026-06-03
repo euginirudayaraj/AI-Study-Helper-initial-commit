@@ -22,15 +22,25 @@ phases:
       - echo "Starting changed Lambda deployment"
       - echo "Current commit:"
       - git rev-parse HEAD
-      - echo "Changed Lambda files:"
-      - git diff --name-only HEAD~1 HEAD -- 'lambdas/*.py' || true
+      - echo "Trying to fetch previous commit history"
+      - git fetch --unshallow || true
+      - git fetch origin main --depth=2 || true
 
   build:
     commands:
       - |
         set -e
 
-        changed_files=$(git diff --name-only HEAD~1 HEAD -- 'lambdas/*.py' || true)
+        if git rev-parse HEAD~1 >/dev/null 2>&1; then
+          echo "Previous commit found. Deploying only changed Lambda files."
+          changed_files=$(git diff --name-only HEAD~1 HEAD -- 'lambdas/*.py' || true)
+        else
+          echo "Previous commit not found. Deploying all Lambda files once."
+          changed_files=$(find lambdas -maxdepth 1 -type f -name "*.py")
+        fi
+
+        echo "Changed files:"
+        echo "$changed_files"
 
         if [ -z "$changed_files" ]; then
           echo "No changed Lambda files found in lambdas/*.py"
@@ -43,7 +53,7 @@ phases:
             function_name=$(basename "$lambda_file" .py)
 
             echo "----------------------------------------"
-            echo "Deploying changed Lambda: $function_name"
+            echo "Deploying Lambda: $function_name"
             echo "Source file: $lambda_file"
 
             if [ ! -s "$lambda_file" ]; then
