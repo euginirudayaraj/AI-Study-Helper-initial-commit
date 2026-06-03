@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 import os
 
-
+test=os.getenv("TEST_ENV_VAR", "default_value")
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
