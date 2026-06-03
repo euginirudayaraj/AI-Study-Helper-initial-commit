@@ -17,7 +17,13 @@ def lambda_handler(event, context):
 
     query_params = event.get("queryStringParameters") or {}
 
-
+    response_body = {
+        "message": "Test Eugin URL Read Lambda",
+        "lambda_name": "flowbridge-sbx-url-read",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "query_params": query_params,
+        "received_event": event
+    }
 
     return {
         "statusCode": 200,
@@ -25,5 +31,5 @@ def lambda_handler(event, context):
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*"
         },
-        "body": json.dumps()
+        "body": json.dumps(response_body)
     }
