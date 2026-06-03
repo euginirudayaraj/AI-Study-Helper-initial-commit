@@ -7,10 +7,6 @@ logger.setLevel(logging.INFO)
 
 
 def lambda_handler(event, context):
-    """
-    FlowBridge SBX URL Read Lambda.
-    This is a sample Lambda handler for testing GitHub -> CodeBuild -> Lambda deployment.
-    """
 
     logger.info("flowbridge-sbx-url-read invoked")
     logger.info("Event: %s", json.dumps(event))
