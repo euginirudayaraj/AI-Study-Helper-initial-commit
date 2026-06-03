@@ -1,7 +1,7 @@
 import json
 
 def lambda_handler(event, context):
-    print("url-lambda event:", json.dumps(event))
+    print("url-lambda event:",fef json.dumps(event))
     return {
         "statusCode": 200,
         "body": json.dumps({
