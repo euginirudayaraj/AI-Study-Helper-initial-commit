@@ -12,32 +12,49 @@ env:
 phases:
   install:
     commands:
-      - echo "Checking AWS CLI and zip"
+      - echo "Checking AWS CLI, Git, and zip"
       - aws --version
+      - git --version
       - which zip || yum install -y zip
 
   pre_build:
     commands:
-      - echo "Starting FlowBridge Lambda create/update deployment"
-      - echo "AWS region is $AWS_REGION"
-      - echo "Lambda execution role is $LAMBDA_EXECUTION_ROLE_ARN"
-      - echo "Listing repo files"
-      - ls -la
-      - echo "Listing lambdas folder"
-      - ls -la lambdas
+      - echo "Starting changed Lambda deployment"
+      - echo "Current commit:"
+      - git rev-parse HEAD
+      - echo "Changed Lambda files:"
+      - git diff --name-only HEAD~1 HEAD -- 'lambdas/*.py' || true
 
   build:
     commands:
       - |
         set -e
 
-        for lambda_file in lambdas/*.py; do
+        changed_files=$(git diff --name-only HEAD~1 HEAD -- 'lambdas/*.py' || true)
+
+        if [ -z "$changed_files" ]; then
+          echo "No changed Lambda files found in lambdas/*.py"
+          echo "Nothing to deploy"
+          exit 0
+        fi
+
+        for lambda_file in $changed_files; do
           if [ -f "$lambda_file" ]; then
             function_name=$(basename "$lambda_file" .py)
 
             echo "----------------------------------------"
-            echo "Processing Lambda: $function_name"
+            echo "Deploying changed Lambda: $function_name"
             echo "Source file: $lambda_file"
+
+            if [ ! -s "$lambda_file" ]; then
+              echo "ERROR: $lambda_file is empty. Stopping deployment."
+              exit 1
+            fi
+
+            if ! grep -q "def lambda_handler" "$lambda_file"; then
+              echo "ERROR: lambda_handler not found in $lambda_file. Stopping deployment."
+              exit 1
+            fi
 
             rm -rf build
             mkdir -p build
@@ -79,4 +96,4 @@ phases:
 
   post_build:
     commands:
-      - echo "FlowBridge Lambda create/update deployment completed"
+      - echo "Changed Lambda deployment completed"
