@@ -16,7 +16,7 @@ def lambda_handler(event, context):
     logger.info("Event: %s", json.dumps(event))
 
     response_body = {
-        "message": "Eugin",
+        "message": "Eugin test",
         "lambda_name": "flowbridge-sbx-grafana-write",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "received_event": event
