@@ -21,10 +21,16 @@ phases:
       - echo "Starting FlowBridge Lambda create/update deployment"
       - echo "AWS region is $AWS_REGION"
       - echo "Lambda execution role is $LAMBDA_EXECUTION_ROLE_ARN"
+      - echo "Listing repo files"
+      - ls -la
+      - echo "Listing lambdas folder"
+      - ls -la lambdas
 
   build:
     commands:
       - |
+        set -e
+
         for lambda_file in lambdas/*.py; do
           if [ -f "$lambda_file" ]; then
             function_name=$(basename "$lambda_file" .py)
@@ -64,7 +70,7 @@ phases:
                 --memory-size "$LAMBDA_MEMORY_SIZE" \
                 --timeout "$LAMBDA_TIMEOUT" \
                 --region "$AWS_REGION" \
-                --tags Project=flowbridge Environment=sbx ManagedBy=codebuild
+                --tags '{"Project":"flowbridge","Environment":"sbx","ManagedBy":"codebuild"}'
 
               echo "Create completed for: $function_name"
             fi
